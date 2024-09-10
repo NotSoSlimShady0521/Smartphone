@@ -6,8 +6,10 @@ from sklearn.preprocessing import MinMaxScaler
 # Load the dataset
 @st.cache
 def load_data():
-    df = pd.read_csv('smartphone.csv')  # Make sure the dataset includes an 'Image URL' column
+    df = pd.read_csv('smartphone.csv')  # Ensure the correct file path
+    print(df.columns)  # Add this line to print the column names
     return df
+
 
 # Preprocess the data
 def preprocess_data(df):
@@ -15,7 +17,7 @@ def preprocess_data(df):
     df['price'] = df['Price'].str.replace('MYR ', '').str.replace(',', '').astype(float)
     
     # Select numerical features for similarity (customize with features relevant to smartphones)
-    df_features = df[['price', 'Battery', 'Camera', 'RAM', 'Storage']]
+    df_features = df[['Price', 'Battery', 'Camera', 'RAM', 'Storage']]  # Corrected names
     
     # Scale the features
     scaler = MinMaxScaler()
