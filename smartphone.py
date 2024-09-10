@@ -1,7 +1,24 @@
 import streamlit as st
 import pandas as pd
+import requests
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import MinMaxScaler
+
+# Constants for Google Custom Search API
+API_KEY = 'YOUR_GOOGLE_API_KEY'  # Replace with your actual API key
+SEARCH_ENGINE_ID = 'YOUR_SEARCH_ENGINE_ID'  # Replace with your search engine ID
+
+# Function to get smartphone image from Google Custom Search API
+def get_smartphone_image(query):
+    url = f"https://www.googleapis.com/customsearch/v1?q={query}&cx={SEARCH_ENGINE_ID}&key={API_KEY}&searchType=image&num=1"
+    response = requests.get(url)
+    try:
+        results = response.json().get('items', [])
+        if results:
+            return results[0]['link']  # Return the first image link
+    except Exception as e:
+        print(f"Error fetching image: {e}")
+    return None  # Return None if no image found
 
 # Load the dataset
 @st.cache_data
@@ -45,49 +62,4 @@ def recommend_smartphones(df, user_preferences, features, scaler, top_n=10):
     similarity = cosine_similarity(df_with_user[features])
     
     # Get the top N most similar smartphones (excluding the user preference row)
-    similar_indices = similarity[-1, :-1].argsort()[-top_n:][::-1]
-    
-    # Return the top recommended smartphones
-    return similar_indices
-
-# Streamlit App
-def main():
-    st.title('Smartphone Recommender System')
-    
-    # Load and preprocess the data
-    df = load_data()
-    df_scaled, df_original, features, scaler = preprocess_data(df)
-
-    # User input: Filter by brand
-    st.sidebar.header('Set Your Preferences')
-    
-    # Dropdown for brand selection
-    brand_list = df_original['brand_name'].unique().tolist()
-    selected_brand = st.sidebar.selectbox('Choose a brand', options=brand_list, index=0)
-    
-    # Filter the dataframe based on selected brand
-    df_filtered = df_scaled[df_original['brand_name'] == selected_brand]
-    df_original_filtered = df_original[df_original['brand_name'] == selected_brand]
-
-    # User input: preferences for smartphone features
-    price = st.sidebar.slider('Max Price (MYR)', min_value=int(df_original_filtered['price'].min()), max_value=int(df_original_filtered['price'].max()), value=1500)
-    rating = st.sidebar.slider('Min Rating', min_value=0, max_value=100, value=80)
-    battery_capacity = st.sidebar.slider('Min Battery Capacity (mAh)', min_value=int(df_original_filtered['battery_capacity'].min()), max_value=int(df_original_filtered['battery_capacity'].max()), value=4000)
-    ram_capacity = st.sidebar.slider('Min RAM (GB)', min_value=int(df_original_filtered['ram_capacity'].min()), max_value=int(df_original_filtered['ram_capacity'].max()), value=6)
-    internal_memory = st.sidebar.slider('Min Internal Memory (GB)', min_value=int(df_original_filtered['internal_memory'].min()), max_value=int(df_original_filtered['internal_memory'].max()), value=128)
-    screen_size = st.sidebar.slider('Min Screen Size (inches)', min_value=float(df_original_filtered['screen_size'].min()), max_value=float(df_original_filtered['screen_size'].max()), value=6.5)
-    
-    # Store user preferences
-    user_preferences = [price, rating, battery_capacity, ram_capacity, internal_memory, screen_size]
-    
-    # Recommend smartphones
-    similar_indices = recommend_smartphones(df_filtered, user_preferences, features, scaler)
-    
-    # Display recommendations with original values
-    recommendations = df_original_filtered.iloc[similar_indices]
-    
-    st.subheader(f'Recommended Smartphones for Brand: {selected_brand}')
-    st.write(recommendations[['brand_name', 'model', 'price', 'rating', 'battery_capacity', 'ram_capacity', 'internal_memory', 'screen_size']])
-
-if __name__ == "__main__":
-    main()
+    similar_indices = similarity[-1, :-1].argsort()[-top_n:][::-
