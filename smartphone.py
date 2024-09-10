@@ -1,29 +1,7 @@
 import streamlit as st
 import pandas as pd
-import requests
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import MinMaxScaler
-
-# Constants for Google Custom Search API
-API_KEY = 'YOUR_GOOGLE_API_KEY'  # Replace with your actual API key
-SEARCH_ENGINE_ID = 'YOUR_SEARCH_ENGINE_ID'  # Replace with your search engine ID
-
-# Function to get smartphone image from Google Custom Search API
-def get_smartphone_image(query):
-    url = f"https://www.googleapis.com/customsearch/v1?q={query}&cx={SEARCH_ENGINE_ID}&key={API_KEY}&searchType=image&num=1"
-    try:
-        response = requests.get(url)
-        response.raise_for_status()  # Raise HTTPError for bad responses
-        results = response.json().get('items', [])
-        if results:
-            return results[0]['link']  # Return the first image link
-        else:
-            print(f"No images found for query: {query}")
-    except requests.exceptions.RequestException as e:
-        print(f"Request error: {e}")
-    except KeyError:
-        print(f"Error extracting image from response: {response.json()}")
-    return None  # Return None if no image found or error occurs
 
 # Load the dataset
 @st.cache_data
@@ -109,21 +87,7 @@ def main():
     recommendations = df_original_filtered.iloc[similar_indices]
     
     st.subheader(f'Recommended Smartphones for Brand: {selected_brand}')
-    
-    for _, row in recommendations.iterrows():
-        image_url = get_smartphone_image(f"{row['brand_name']} {row['model']}")
-        st.write(f"**{row['brand_name']} {row['model']}**")
-        st.write(f"Price: MYR {row['price']}")
-        st.write(f"Rating: {row['rating']}")
-        st.write(f"Battery Capacity: {row['battery_capacity']} mAh")
-        st.write(f"RAM: {row['ram_capacity']} GB")
-        st.write(f"Internal Memory: {row['internal_memory']} GB")
-        st.write(f"Screen Size: {row['screen_size']} inches")
-        
-        if image_url:
-            st.image(image_url, caption=f"{row['brand_name']} {row['model']}", use_column_width=True)
-        else:
-            st.write("Image not available")
+    st.write(recommendations[['brand_name', 'model', 'price', 'rating', 'battery_capacity', 'ram_capacity', 'internal_memory', 'screen_size']])
 
 if __name__ == "__main__":
     main()
