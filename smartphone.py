@@ -6,68 +6,80 @@ from sklearn.preprocessing import MinMaxScaler
 # Load the dataset
 @st.cache
 def load_data():
-    df = pd.read_csv('smartphone.csv')  # Ensure the correct file path
-    print(df.columns)  # Add this line to print the column names
+    df = pd.read_csv('smartphone.csv')  # Replace with your file path
     return df
-
 
 # Preprocess the data
 def preprocess_data(df):
     # Remove 'MYR ' from the price column and convert to numeric
     df['price'] = df['Price'].str.replace('MYR ', '').str.replace(',', '').astype(float)
-    
-    # Select numerical features for similarity (customize with features relevant to smartphones)
-    df_features = df[['Price', 'Battery', 'Camera', 'RAM', 'Storage']]  # Corrected names
-    
-    # Scale the features
+
+    # Select numerical columns for similarity computation
+    features = ['price', 'rating', 'battery_capacity', 'ram_capacity', 'internal_memory', 'screen_size']
+    df[features] = df[features].apply(pd.to_numeric, errors='coerce')  # Convert to numeric
+
+    # Fill missing values with the mean
+    df[features] = df[features].fillna(df[features].mean())
+
+    # Save the original values for display later
+    df_original = df.copy()
+
+    # Normalize the feature values to a range of [0,1] for comparison
     scaler = MinMaxScaler()
-    df_scaled = pd.DataFrame(scaler.fit_transform(df_features), columns=df_features.columns)
+    df[features] = scaler.fit_transform(df[features])
     
-    return df, df_scaled
+    return df, df_original, features
 
-# Compute similarity and recommend smartphones
-def recommend_smartphones(df, df_scaled, selected_index, top_n=5):
-    # Compute cosine similarity
-    similarity_matrix = cosine_similarity(df_scaled)
+# Recommend smartphones based on similarity
+def recommend_smartphones(df, user_preferences, features, top_n=10):
+    # Scale the user preferences using the same MinMaxScaler as the dataframe
+    scaler = MinMaxScaler()
+    scaler.fit(df[features])  # Fit the scaler using the dataframe
+    user_preferences_scaled = scaler.transform([user_preferences])  # Scale user preferences to match the range
     
-    # Get similarity scores for the selected smartphone
-    similarity_scores = similarity_matrix[selected_index]
+    # Convert user preferences into a DataFrame with the same structure as the main dataset
+    user_preferences_df = pd.DataFrame(user_preferences_scaled, columns=features)
     
-    # Sort smartphones based on similarity scores
-    similar_smartphones_indices = similarity_scores.argsort()[::-1][1:top_n+1]  # Exclude the selected smartphone
+    # Concatenate the user's preferences as a new row in the dataframe
+    df_with_user = pd.concat([df, user_preferences_df], ignore_index=True)
     
-    return df.iloc[similar_smartphones_indices]
+    # Compute cosine similarity between user preferences and all smartphones
+    similarity = cosine_similarity(df_with_user[features])
+    
+    # Get the top N most similar smartphones (excluding the user preference row)
+    similar_indices = similarity[-1, :-1].argsort()[-top_n:][::-1]
+    
+    # Return the top recommended smartphones
+    return similar_indices
 
-# Main function
+# Streamlit App
 def main():
-    # Load and preprocess data
+    st.title('Smartphone Recommender System')
+    
+    # Load and preprocess the data
     df = load_data()
-    df, df_scaled = preprocess_data(df)
-    
-    st.title("Smartphone Recommender System")
-    
-    # Select a smartphone from the dataset
-    selected_smartphone = st.selectbox("Select a smartphone", df['Model'])
-    selected_index = df[df['Model'] == selected_smartphone].index[0]
-    
-    # Display selected smartphone details
-    st.write(f"**Selected Smartphone: {selected_smartphone}**")
-    
-    # Recommend similar smartphones
-    st.write("Recommended Smartphones:")
-    recommended_smartphones = recommend_smartphones(df, df_scaled, selected_index)
-    
-    for index, row in recommended_smartphones.iterrows():
-        # Display smartphone details
-        st.write(f"**Model**: {row['Model']}")
-        st.write(f"**Price**: MYR {row['price']}")
-        st.write(f"**Battery**: {row['Battery']} mAh")
-        st.write(f"**Camera**: {row['Camera']} MP")
-        st.write(f"**RAM**: {row['RAM']} GB")
-        st.write(f"**Storage**: {row['Storage']} GB")
-        
-        # Display smartphone image
-        st.image(row['Image URL'], width=200)  # Assuming 'Image URL' column contains URLs of smartphone images
+    df_scaled, df_original, features = preprocess_data(df)
 
-if __name__ == '__main__':
+    # User input: preferences for smartphone features
+    st.sidebar.header('Set Your Preferences')
+    price = st.sidebar.slider('Max Price (MYR)', min_value=int(df_original['price'].min()), max_value=int(df_original['price'].max()), value=1500)
+    rating = st.sidebar.slider('Min Rating', min_value=0, max_value=100, value=80)
+    battery_capacity = st.sidebar.slider('Min Battery Capacity (mAh)', min_value=int(df_original['battery_capacity'].min()), max_value=int(df_original['battery_capacity'].max()), value=4000)
+    ram_capacity = st.sidebar.slider('Min RAM (GB)', min_value=int(df_original['ram_capacity'].min()), max_value=int(df_original['ram_capacity'].max()), value=6)
+    internal_memory = st.sidebar.slider('Min Internal Memory (GB)', min_value=int(df_original['internal_memory'].min()), max_value=int(df_original['internal_memory'].max()), value=128)
+    screen_size = st.sidebar.slider('Min Screen Size (inches)', min_value=float(df_original['screen_size'].min()), max_value=float(df_original['screen_size'].max()), value=6.5)
+    
+    # Store user preferences
+    user_preferences = [price, rating, battery_capacity, ram_capacity, internal_memory, screen_size]
+    
+    # Recommend smartphones
+    similar_indices = recommend_smartphones(df_scaled, user_preferences, features)
+    
+    # Display recommendations with original values
+    recommendations = df_original.iloc[similar_indices]
+    
+    st.subheader('Recommended Smartphones for You')
+    st.write(recommendations[['brand_name', 'model', 'price', 'rating', 'battery_capacity', 'ram_capacity', 'internal_memory', 'screen_size']])
+
+if __name__ == "__main__":
     main()
