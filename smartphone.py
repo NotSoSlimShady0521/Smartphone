@@ -62,4 +62,7 @@ def recommend_smartphones(df, user_preferences, features, scaler, top_n=10):
     similarity = cosine_similarity(df_with_user[features])
     
     # Get the top N most similar smartphones (excluding the user preference row)
-    similar_indices = similarity[-1, :-1].argsort()[-top_n:][::-
+    similar_indices = similarity[-1, :-1].argsort()[-top_n:][::-1]
+    
+    # Return the top recommended smartphones
+    return similar_indices
