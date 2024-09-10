@@ -11,14 +11,19 @@ SEARCH_ENGINE_ID = 'YOUR_SEARCH_ENGINE_ID'  # Replace with your search engine ID
 # Function to get smartphone image from Google Custom Search API
 def get_smartphone_image(query):
     url = f"https://www.googleapis.com/customsearch/v1?q={query}&cx={SEARCH_ENGINE_ID}&key={API_KEY}&searchType=image&num=1"
-    response = requests.get(url)
     try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise HTTPError for bad responses
         results = response.json().get('items', [])
         if results:
             return results[0]['link']  # Return the first image link
-    except Exception as e:
-        print(f"Error fetching image: {e}")
-    return None  # Return None if no image found
+        else:
+            print(f"No images found for query: {query}")
+    except requests.exceptions.RequestException as e:
+        print(f"Request error: {e}")
+    except KeyError:
+        print(f"Error extracting image from response: {response.json()}")
+    return None  # Return None if no image found or error occurs
 
 # Load the dataset
 @st.cache_data
