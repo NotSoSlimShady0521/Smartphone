@@ -66,6 +66,8 @@ def recommend_smartphones(df, user_preferences, features, scaler, top_n=10):
     
     # Return the top recommended smartphones
     return similar_indices
+
+# Streamlit App
 def main():
     st.title('Smartphone Recommender System')
     
@@ -102,7 +104,21 @@ def main():
     recommendations = df_original_filtered.iloc[similar_indices]
     
     st.subheader(f'Recommended Smartphones for Brand: {selected_brand}')
-    st.write(recommendations[['brand_name', 'model', 'price', 'rating', 'battery_capacity', 'ram_capacity', 'internal_memory', 'screen_size']])
+    
+    for _, row in recommendations.iterrows():
+        image_url = get_smartphone_image(f"{row['brand_name']} {row['model']}")
+        st.write(f"**{row['brand_name']} {row['model']}**")
+        st.write(f"Price: MYR {row['price']}")
+        st.write(f"Rating: {row['rating']}")
+        st.write(f"Battery Capacity: {row['battery_capacity']} mAh")
+        st.write(f"RAM: {row['ram_capacity']} GB")
+        st.write(f"Internal Memory: {row['internal_memory']} GB")
+        st.write(f"Screen Size: {row['screen_size']} inches")
+        
+        if image_url:
+            st.image(image_url, caption=f"{row['brand_name']} {row['model']}", use_column_width=True)
+        else:
+            st.write("Image not available")
 
 if __name__ == "__main__":
     main()
