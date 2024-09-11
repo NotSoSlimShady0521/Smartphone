@@ -71,6 +71,10 @@ def main():
     internal_memory = st.sidebar.slider('Min Internal Memory (GB)', min_value=int(df_original_filtered['internal_memory'].min()), max_value=int(df_original_filtered['internal_memory'].max()), value=128)
     screen_size = st.sidebar.slider('Min Screen Size (inches)', min_value=float(df_original_filtered['screen_size'].min()), max_value=float(df_original_filtered['screen_size'].max()), value=6.5)
     
+    # Filter based on selected price
+    df_filtered = df_filtered[df_original_filtered['price'] <= price]
+    df_original_filtered = df_original_filtered[df_original_filtered['price'] <= price]
+
     # Removed 'rating' from user preferences
     user_preferences = [price, battery_capacity, ram_capacity, internal_memory, screen_size]
     similar_indices = recommend_smartphones(df_filtered, user_preferences, features, scaler)
