@@ -2,6 +2,31 @@ import streamlit as st
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import MinMaxScaler
+import requests
+from googleapiclient.discovery import build
+
+# Set up Google Custom Search API
+API_KEY = 'YOUR_GOOGLE_API_KEY'  # Replace with your API key
+CSE_ID = 'YOUR_SEARCH_ENGINE_ID'  # Replace with your Search Engine ID
+
+def google_search(query, api_key, cse_id, num=1):
+    """Function to perform Google Custom Search and retrieve image URLs."""
+    service = build("customsearch", "v1", developerKey=api_key)
+    res = service.cse().list(
+        q=query,
+        cx=cse_id,
+        searchType='image',  # Only retrieve images
+        num=num,
+        safe='off'
+    ).execute()
+    
+    return res['items'][0]['link'] if 'items' in res else None
+
+# Function to get smartphone image URL
+def get_smartphone_image(model_name):
+    query = f"{model_name} smartphone"
+    image_url = google_search(query, API_KEY, CSE_ID)
+    return image_url
 
 # Set Streamlit to use wide layout
 st.set_page_config(layout="wide")
@@ -92,8 +117,19 @@ def main():
     
     st.subheader(f'Recommended Smartphones for Brand: {selected_brand} and Processor: {selected_processor}')
     
-    # Removed 'rating' from the result display
-    st.dataframe(recommendations[['brand_name', 'model', 'price', 'processor_brand', 'battery_capacity', 'ram_capacity', 'internal_memory', 'screen_size']], height=600, width=1200)
+    # Display smartphone data along with images
+    for i, row in recommendations.iterrows():
+        # Use Google API to get image if URL is not available in the dataset
+        image_url = row['image_url'] if 'image_url' in row and pd.notnull(row['image_url']) else get_smartphone_image(row['model'])
+        st.image(image_url, width=150)
+        st.write(f"**{row['brand_name']} {row['model']}**")
+        st.write(f"Price: MYR {row['price']}")
+        st.write(f"Processor: {row['processor_brand']}")
+        st.write(f"Battery: {row['battery_capacity']} mAh")
+        st.write(f"RAM: {row['ram_capacity']} GB")
+        st.write(f"Internal Memory: {row['internal_memory']} GB")
+        st.write(f"Screen Size: {row['screen_size']} inches")
+        st.markdown("---")  # Separator
 
 if __name__ == "__main__":
     main()
