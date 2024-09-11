@@ -65,15 +65,29 @@ def main():
         df_filtered = df_filtered[df_original['processor_brand'] == selected_processor]
         df_original_filtered = df_original[df_original['processor_brand'] == selected_processor]
 
+    # Sidebar sliders for user preferences
     price = st.sidebar.slider('Max Price (MYR)', min_value=int(df_original_filtered['price'].min()), max_value=int(df_original_filtered['price'].max()), value=1500)
     battery_capacity = st.sidebar.slider('Min Battery Capacity (mAh)', min_value=int(df_original_filtered['battery_capacity'].min()), max_value=int(df_original_filtered['battery_capacity'].max()), value=4000)
     ram_capacity = st.sidebar.slider('Min RAM (GB)', min_value=int(df_original_filtered['ram_capacity'].min()), max_value=int(df_original_filtered['ram_capacity'].max()), value=6)
     internal_memory = st.sidebar.slider('Min Internal Memory (GB)', min_value=int(df_original_filtered['internal_memory'].min()), max_value=int(df_original_filtered['internal_memory'].max()), value=128)
     screen_size = st.sidebar.slider('Min Screen Size (inches)', min_value=float(df_original_filtered['screen_size'].min()), max_value=float(df_original_filtered['screen_size'].max()), value=6.5)
     
-    # Filter based on selected price
-    df_filtered = df_filtered[df_original_filtered['price'] <= price]
-    df_original_filtered = df_original_filtered[df_original_filtered['price'] <= price]
+    # Apply filters for all parameters (price, battery capacity, ram, internal memory, screen size)
+    df_filtered = df_filtered[
+        (df_original_filtered['price'] <= price) &
+        (df_original_filtered['battery_capacity'] >= battery_capacity) &
+        (df_original_filtered['ram_capacity'] >= ram_capacity) &
+        (df_original_filtered['internal_memory'] >= internal_memory) &
+        (df_original_filtered['screen_size'] >= screen_size)
+    ]
+    
+    df_original_filtered = df_original_filtered[
+        (df_original_filtered['price'] <= price) &
+        (df_original_filtered['battery_capacity'] >= battery_capacity) &
+        (df_original_filtered['ram_capacity'] >= ram_capacity) &
+        (df_original_filtered['internal_memory'] >= internal_memory) &
+        (df_original_filtered['screen_size'] >= screen_size)
+    ]
 
     # Removed 'rating' from user preferences
     user_preferences = [price, battery_capacity, ram_capacity, internal_memory, screen_size]
