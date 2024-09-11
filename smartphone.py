@@ -54,47 +54,41 @@ def main():
     processor_list = ['Every Processor'] + df_original['processor_brand'].unique().tolist()
     selected_processor = st.sidebar.selectbox('Choose a processor brand', options=processor_list, index=0)
 
-    df_filtered = df_scaled.copy()
-    df_original_filtered = df_original.copy()
+    # Filter the original DataFrame first based on the selected brand and processor
+    df_filtered = df_original.copy()
     
     if selected_brand != 'Every Brand':
-        df_filtered = df_filtered[df_original['brand_name'] == selected_brand]
-        df_original_filtered = df_original[df_original['brand_name'] == selected_brand]
+        df_filtered = df_filtered[df_filtered['brand_name'] == selected_brand]
     
     if selected_processor != 'Every Processor':
-        df_filtered = df_filtered[df_original['processor_brand'] == selected_processor]
-        df_original_filtered = df_original[df_original['processor_brand'] == selected_processor]
+        df_filtered = df_filtered[df_filtered['processor_brand'] == selected_processor]
 
     # Sidebar sliders for user preferences
-    price = st.sidebar.slider('Max Price (MYR)', min_value=int(df_original_filtered['price'].min()), max_value=int(df_original_filtered['price'].max()), value=1500)
-    battery_capacity = st.sidebar.slider('Min Battery Capacity (mAh)', min_value=int(df_original_filtered['battery_capacity'].min()), max_value=int(df_original_filtered['battery_capacity'].max()), value=4000)
-    ram_capacity = st.sidebar.slider('Min RAM (GB)', min_value=int(df_original_filtered['ram_capacity'].min()), max_value=int(df_original_filtered['ram_capacity'].max()), value=6)
-    internal_memory = st.sidebar.slider('Min Internal Memory (GB)', min_value=int(df_original_filtered['internal_memory'].min()), max_value=int(df_original_filtered['internal_memory'].max()), value=128)
-    screen_size = st.sidebar.slider('Min Screen Size (inches)', min_value=float(df_original_filtered['screen_size'].min()), max_value=float(df_original_filtered['screen_size'].max()), value=6.5)
+    price = st.sidebar.slider('Max Price (MYR)', min_value=int(df_filtered['price'].min()), max_value=int(df_filtered['price'].max()), value=1500)
+    battery_capacity = st.sidebar.slider('Min Battery Capacity (mAh)', min_value=int(df_filtered['battery_capacity'].min()), max_value=int(df_filtered['battery_capacity'].max()), value=4000)
+    ram_capacity = st.sidebar.slider('Min RAM (GB)', min_value=int(df_filtered['ram_capacity'].min()), max_value=int(df_filtered['ram_capacity'].max()), value=6)
+    internal_memory = st.sidebar.slider('Min Internal Memory (GB)', min_value=int(df_filtered['internal_memory'].min()), max_value=int(df_filtered['internal_memory'].max()), value=128)
+    screen_size = st.sidebar.slider('Min Screen Size (inches)', min_value=float(df_filtered['screen_size'].min()), max_value=float(df_filtered['screen_size'].max()), value=6.5)
     
-    # Apply filters for all parameters (price, battery capacity, ram, internal memory, screen size)
+    # Apply filters to df_filtered based on the user's input
     df_filtered = df_filtered[
-        (df_original_filtered['price'] <= price) &
-        (df_original_filtered['battery_capacity'] >= battery_capacity) &
-        (df_original_filtered['ram_capacity'] >= ram_capacity) &
-        (df_original_filtered['internal_memory'] >= internal_memory) &
-        (df_original_filtered['screen_size'] >= screen_size)
+        (df_filtered['price'] <= price) &
+        (df_filtered['battery_capacity'] >= battery_capacity) &
+        (df_filtered['ram_capacity'] >= ram_capacity) &
+        (df_filtered['internal_memory'] >= internal_memory) &
+        (df_filtered['screen_size'] >= screen_size)
     ]
-    
-    df_original_filtered = df_original_filtered[
-        (df_original_filtered['price'] <= price) &
-        (df_original_filtered['battery_capacity'] >= battery_capacity) &
-        (df_original_filtered['ram_capacity'] >= ram_capacity) &
-        (df_original_filtered['internal_memory'] >= internal_memory) &
-        (df_original_filtered['screen_size'] >= screen_size)
-    ]
+
+    # Scale the filtered DataFrame for recommendation
+    df_filtered_scaled = df_filtered.copy()
+    df_filtered_scaled[features] = scaler.transform(df_filtered[features])
 
     # Removed 'rating' from user preferences
     user_preferences = [price, battery_capacity, ram_capacity, internal_memory, screen_size]
-    similar_indices = recommend_smartphones(df_filtered, user_preferences, features, scaler)
-    
-    # Display only non-empty rows based on filtered indices
-    recommendations = df_original_filtered.iloc[similar_indices]
+    similar_indices = recommend_smartphones(df_filtered_scaled, user_preferences, features, scaler)
+
+    # Display the filtered and recommended smartphones
+    recommendations = df_filtered.iloc[similar_indices]
     
     st.subheader(f'Recommended Smartphones for Brand: {selected_brand} and Processor: {selected_processor}')
     
