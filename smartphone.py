@@ -30,21 +30,7 @@ def preprocess_data(df):
     
     return df, df_original, features, scaler
 
-# Recommend smartphones based on similarity (Recommender System 1)
-def recommend_similar_smartphones(df, features, scaler, selected_phone_index, top_n=10):
-    # Get the features of the selected phone
-    selected_phone = df.iloc[selected_phone_index][features].values.reshape(1, -1)
-    
-    # Compute cosine similarity between the selected phone and all smartphones
-    similarity = cosine_similarity(selected_phone, df[features])
-    
-    # Get the top N most similar smartphones (excluding the selected phone itself)
-    similar_indices = similarity[0].argsort()[-(top_n + 1):][::-1][1:]  # Exclude selected phone itself
-    
-    # Return the top recommended smartphones
-    return similar_indices
-
-# Recommend smartphones based on user preferences (Recommender System 2)
+# Recommend smartphones based on similarity
 def recommend_smartphones(df, user_preferences, features, scaler, top_n=10):
     # Scale the user preferences using the same MinMaxScaler as the dataframe
     user_preferences_scaled = scaler.transform([user_preferences])  # Scale user preferences to match the range
@@ -64,57 +50,83 @@ def recommend_smartphones(df, user_preferences, features, scaler, top_n=10):
     # Return the top recommended smartphones
     return similar_indices
 
-# Recommender System 1: Similar phones based on selected phone
+# Recommender system 1: Select a phone and find similar phones
 def recommender_system_1(df_original, df_scaled, features, scaler):
-    st.subheader('Recommender System 1: Similar Phones')
+    st.subheader('Recommender System 1: Select a Phone and Find Similar Ones')
 
-    # Let user select a phone from a dropdown
-    selected_phone_model = st.selectbox('Select a Phone You Like', df_original['model'])
-    selected_phone_index = df_original[df_original['model'] == selected_phone_model].index[0]
+    # Select a phone from the dataset
+    phone_selection = st.selectbox('Select a smartphone', df_original['model'].unique())
+
+    # Get the selected phone's data
+    selected_phone = df_original[df_original['model'] == phone_selection].iloc[0]
     
-    # Recommend similar phones based on the selected phone
-    similar_indices = recommend_similar_smartphones(df_scaled, features, scaler, selected_phone_index)
+    # Extract the features of the selected phone
+    user_preferences = [selected_phone['price'], 
+                        selected_phone['battery_capacity'], 
+                        selected_phone['ram_capacity'], 
+                        selected_phone['internal_memory'], 
+                        selected_phone['screen_size'], 
+                        selected_phone['primary_camera_rear'], 
+                        selected_phone['primary_camera_front']]
     
-    # Display recommendations
+    # Find and display similar smartphones
+    similar_indices = recommend_smartphones(df_scaled, user_preferences, features, scaler)
     recommendations = df_original.iloc[similar_indices]
     
-    st.write(f"Phones similar to {selected_phone_model}:")
-    st.write(recommendations[['brand_name', 'model', 'price', 'battery_capacity', 'ram_capacity', 'internal_memory', 'screen_size', 'primary_camera_rear', 'primary_camera_front']])
+    # Display result table with units
+    st.write(recommendations[['brand_name', 'model', 
+                              'price', 'battery_capacity', 
+                              'processor_brand', 'ram_capacity', 
+                              'internal_memory', 'screen_size', 
+                              'primary_camera_rear', 'primary_camera_front']])
 
-# Recommender System 2: Recommend phones based on user preferences
+# Recommender system 2: Customize your preferences
 def recommender_system_2(df_original, df_scaled, features, scaler):
     st.subheader('Recommender System 2: Customize Your Preferences')
 
     # Sidebar: User input to filter by brand and processor
     with st.sidebar.form(key='preferences_form'):
-        # Get the selected brand and processor brand to limit options dynamically
-        all_brands = df_original['brand_name'].unique()
-        all_processors = df_original['processor_brand'].unique()
-        
-        # Initialize dropdowns
-        selected_brand = st.selectbox('Choose a brand', options=['Any Brand'] + sorted(all_brands), index=0)
-        
-        # Dynamically filter processor brands based on selected brand
+        # Get all unique brands and processors
+        all_brands = df_original['brand_name'].unique().tolist()
+        all_processors = df_original['processor_brand'].unique().tolist()
+
+        # Initialize brand dropdown
+        brand_list_with_any = ['Any Brand'] + all_brands
+        selected_brand = st.selectbox('Choose a brand', options=brand_list_with_any)
+
+        # Limit processor options based on the selected brand
         if selected_brand != 'Any Brand':
-            available_processors = df_original[df_original['brand_name'] == selected_brand]['processor_brand'].unique()
+            filtered_processor_list = df_original[df_original['brand_name'] == selected_brand]['processor_brand'].unique().tolist()
+            processor_list_with_any = ['Any Processor Brand'] + filtered_processor_list
         else:
-            available_processors = all_processors
+            processor_list_with_any = ['Any Processor Brand'] + all_processors
 
-        selected_processor_brand = st.selectbox('Choose a Processor Brand', options=['Any Processor Brand'] + sorted(available_processors), index=0)
-        
-        # Dynamically filter brands based on selected processor brand
+        selected_processor_brand = st.selectbox('Choose a Processor Brand', options=processor_list_with_any)
+
+        # Limit brand options based on the selected processor brand
         if selected_processor_brand != 'Any Processor Brand':
-            available_brands = df_original[df_original['processor_brand'] == selected_processor_brand]['brand_name'].unique()
-        else:
-            available_brands = all_brands
-        
-        # Ensure that the filtered dataframe is not empty
-        df_filtered = df_scaled[df_original['brand_name'].isin(available_brands)]
-        df_original_filtered = df_original[df_original['brand_name'].isin(available_brands)]
+            filtered_brand_list = df_original[df_original['processor_brand'] == selected_processor_brand]['brand_name'].unique().tolist()
+            brand_list_with_any = ['Any Brand'] + filtered_brand_list
 
+        # Ensure the dropdown for brand is updated after processor selection
+        selected_brand = st.selectbox('Choose a brand (updated after processor selection)', options=brand_list_with_any, index=brand_list_with_any.index(selected_brand))
+
+        # Now filter the dataframe based on the selected brand and processor brand
+        if selected_brand != 'Any Brand':
+            df_filtered = df_scaled[df_original['brand_name'] == selected_brand]
+            df_original_filtered = df_original[df_original['brand_name'] == selected_brand]
+        else:
+            df_filtered = df_scaled
+            df_original_filtered = df_original
+
+        if selected_processor_brand != 'Any Processor Brand':
+            df_filtered = df_filtered[df_original_filtered['processor_brand'] == selected_processor_brand]
+            df_original_filtered = df_original_filtered[df_original_filtered['processor_brand'] == selected_processor_brand]
+
+        # Ensure the filtered dataframe is not empty
         if df_original_filtered.empty:
             st.error("No data available for the selected brand or processor. Please adjust your filters.")
-            return  # Exit the function early if no data is available
+            return  # Exit if no data is available
 
         # User input: preferences for smartphone features
         price = st.slider('Max Price (MYR)', min_value=int(df_original_filtered['price'].min()), max_value=int(df_original_filtered['price'].max()), value=1500)
@@ -122,7 +134,7 @@ def recommender_system_2(df_original, df_scaled, features, scaler):
         ram_capacity = st.slider('Min RAM (GB)', min_value=int(df_original_filtered['ram_capacity'].min()), max_value=int(df_original_filtered['ram_capacity'].max()), value=6)
         internal_memory = st.slider('Min Internal Memory (GB)', min_value=int(df_original_filtered['internal_memory'].min()), max_value=int(df_original_filtered['internal_memory'].max()), value=128)
         screen_size = st.slider('Min Screen Size (inches)', min_value=float(df_original_filtered['screen_size'].min()), max_value=float(df_original_filtered['screen_size'].max()), value=6.5)
-        
+
         # Dropdowns for camera megapixels
         rear_camera = st.selectbox('Choose Min Rear Camera MP', sorted(df_original_filtered['primary_camera_rear'].unique()))
         front_camera = st.selectbox('Choose Min Front Camera MP', sorted(df_original_filtered['primary_camera_front'].unique()))
@@ -148,7 +160,7 @@ def recommender_system_2(df_original, df_scaled, features, scaler):
                                   'internal_memory', 'screen_size', 
                                   'primary_camera_rear', 'primary_camera_front']])
 
-# Main function to run the app
+# Main function to run the Streamlit app
 def main():
     st.title('Smartphone Recommender System')
 
@@ -156,14 +168,16 @@ def main():
     df = load_data()
     df_scaled, df_original, features, scaler = preprocess_data(df)
 
-    # Sidebar: Select the recommender system
-    st.sidebar.title("Select a Recommender System")
-    recommender_option = st.sidebar.selectbox("Choose a Recommender System", ['Recommender System 1', 'Recommender System 2'])
+    # Select the recommender system mode
+    system_choice = st.sidebar.selectbox('Choose a recommender system', 
+                                         ['Recommender System 1: Select a phone and find similar', 
+                                          'Recommender System 2: Customize preferences'])
 
-    if recommender_option == 'Recommender System 1':
+    # Display the corresponding recommender system
+    if system_choice == 'Recommender System 1: Select a phone and find similar':
         recommender_system_1(df_original, df_scaled, features, scaler)
     else:
         recommender_system_2(df_original, df_scaled, features, scaler)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
