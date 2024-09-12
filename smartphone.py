@@ -88,16 +88,19 @@ def main():
             df_filtered = df_filtered[df_original_filtered['processor_brand'] == selected_processor_brand]
             df_original_filtered = df_original_filtered[df_original_filtered['processor_brand'] == selected_processor_brand]
 
+        # Ensure there are no NaN values when calculating min/max for sliders
+        df_original_filtered['price'] = df_original_filtered['price'].fillna(df_original_filtered['price'].mean())
+        
         # User input: preferences for smartphone features
-        price = st.slider('Max Price (MYR)', min_value=int(df_original_filtered['price'].min()), max_value=int(df_original_filtered['price'].max()), value=1500)
-        battery_capacity = st.slider('Min Battery Capacity (mAh)', min_value=int(df_original_filtered['battery_capacity'].min()), max_value=int(df_original_filtered['battery_capacity'].max()), value=4000)
-        ram_capacity = st.slider('Min RAM (GB)', min_value=int(df_original_filtered['ram_capacity'].min()), max_value=int(df_original_filtered['ram_capacity'].max()), value=6)
-        internal_memory = st.slider('Min Internal Memory (GB)', min_value=int(df_original_filtered['internal_memory'].min()), max_value=int(df_original_filtered['internal_memory'].max()), value=128)
-        screen_size = st.slider('Min Screen Size (inches)', min_value=float(df_original_filtered['screen_size'].min()), max_value=float(df_original_filtered['screen_size'].max()), value=6.5)
+        price = st.slider('Max Price (MYR)', min_value=int(df_original_filtered['price'].dropna().min()), max_value=int(df_original_filtered['price'].dropna().max()), value=1500)
+        battery_capacity = st.slider('Min Battery Capacity (mAh)', min_value=int(df_original_filtered['battery_capacity'].dropna().min()), max_value=int(df_original_filtered['battery_capacity'].dropna().max()), value=4000)
+        ram_capacity = st.slider('Min RAM (GB)', min_value=int(df_original_filtered['ram_capacity'].dropna().min()), max_value=int(df_original_filtered['ram_capacity'].dropna().max()), value=6)
+        internal_memory = st.slider('Min Internal Memory (GB)', min_value=int(df_original_filtered['internal_memory'].dropna().min()), max_value=int(df_original_filtered['internal_memory'].dropna().max()), value=128)
+        screen_size = st.slider('Min Screen Size (inches)', min_value=float(df_original_filtered['screen_size'].dropna().min()), max_value=float(df_original_filtered['screen_size'].dropna().max()), value=6.5)
         
         # Dropdowns for camera megapixels
-        rear_camera = st.selectbox('Choose Min Rear Camera MP', sorted(df_original_filtered['primary_camera_rear'].unique()))
-        front_camera = st.selectbox('Choose Min Front Camera MP', sorted(df_original_filtered['primary_camera_front'].unique()))
+        rear_camera = st.selectbox('Choose Min Rear Camera MP', sorted(df_original_filtered['primary_camera_rear'].dropna().unique()))
+        front_camera = st.selectbox('Choose Min Front Camera MP', sorted(df_original_filtered['primary_camera_front'].dropna().unique()))
 
         # Store user preferences
         user_preferences = [price, battery_capacity, ram_capacity, internal_memory, screen_size, rear_camera, front_camera]
