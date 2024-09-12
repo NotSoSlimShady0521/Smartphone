@@ -87,61 +87,40 @@ def recommender_system_2(df_original, df_scaled, features, scaler):
 
     # Sidebar: User input to filter by brand and processor
     with st.sidebar.form(key='preferences_form'):
-        # Add "Any Brand" option to the brand selection
-        brand_list = ['Any Brand'] + df_original['brand_name'].unique().tolist()
-        selected_brand = st.selectbox('Choose a brand', options=brand_list, index=0)
+        # Get the selected brand and processor brand to limit options dynamically
+        all_brands = df_original['brand_name'].unique()
+        all_processors = df_original['processor_brand'].unique()
         
-        # Filter the dataframe based on selected brand
+        # Initialize dropdowns
+        selected_brand = st.selectbox('Choose a brand', options=['Any Brand'] + sorted(all_brands), index=0)
+        
+        # Dynamically filter processor brands based on selected brand
         if selected_brand != 'Any Brand':
-            df_filtered = df_scaled[df_original['brand_name'] == selected_brand]
-            df_original_filtered = df_original[df_original['brand_name'] == selected_brand]
+            available_processors = df_original[df_original['brand_name'] == selected_brand]['processor_brand'].unique()
         else:
-            df_filtered = df_scaled
-            df_original_filtered = df_original
+            available_processors = all_processors
 
+        selected_processor_brand = st.selectbox('Choose a Processor Brand', options=['Any Processor Brand'] + sorted(available_processors), index=0)
+        
+        # Dynamically filter brands based on selected processor brand
+        if selected_processor_brand != 'Any Processor Brand':
+            available_brands = df_original[df_original['processor_brand'] == selected_processor_brand]['brand_name'].unique()
+        else:
+            available_brands = all_brands
+        
         # Ensure that the filtered dataframe is not empty
+        df_filtered = df_scaled[df_original['brand_name'].isin(available_brands)]
+        df_original_filtered = df_original[df_original['brand_name'].isin(available_brands)]
+
         if df_original_filtered.empty:
             st.error("No data available for the selected brand or processor. Please adjust your filters.")
             return  # Exit the function early if no data is available
 
-        # Processor brand options based on the selected smartphone brand
-        if selected_brand == 'Any Brand':
-            processor_list = df_original['processor_brand'].unique().tolist()  # Show all processor brands if "Any Brand" selected
-        else:
-            processor_list = ['Any Processor Brand'] + df_original_filtered['processor_brand'].unique().tolist()
-
-        # Processor brand selection
-        selected_processor_brand = st.selectbox('Choose a Processor Brand', options=processor_list, index=0)
-        
-        # Filter by processor brand unless "Any Processor Brand" is selected
-        if selected_processor_brand != 'Any Processor Brand':
-            df_filtered = df_filtered[df_original_filtered['processor_brand'] == selected_processor_brand]
-            df_original_filtered = df_original_filtered[df_original_filtered['processor_brand'] == selected_processor_brand]
-
-        # Ensure df_original_filtered is not empty after processor filter
-        if df_original_filtered.empty:
-            st.error("No smartphones found for the selected brand and processor. Please adjust your filters.")
-            return  # Exit the function early if no data is available
-
-        # Convert internal_memory to numeric and handle any conversion errors
-        df_original_filtered['internal_memory'] = pd.to_numeric(df_original_filtered['internal_memory'], errors='coerce')
-
-        # Handle cases where the internal_memory column may still contain NaNs or no valid values
-        if df_original_filtered['internal_memory'].dropna().empty:
-            st.error("No valid internal memory data available for the selected filters.")
-            return  # Exit if no valid data for internal_memory is available
-
-        # Ensure min and max values exist for the sliders
+        # User input: preferences for smartphone features
         price = st.slider('Max Price (MYR)', min_value=int(df_original_filtered['price'].min()), max_value=int(df_original_filtered['price'].max()), value=1500)
         battery_capacity = st.slider('Min Battery Capacity (mAh)', min_value=int(df_original_filtered['battery_capacity'].min()), max_value=int(df_original_filtered['battery_capacity'].max()), value=4000)
         ram_capacity = st.slider('Min RAM (GB)', min_value=int(df_original_filtered['ram_capacity'].min()), max_value=int(df_original_filtered['ram_capacity'].max()), value=6)
-        
-        # Handle internal_memory slider after ensuring non-empty valid numeric data
-        internal_memory = st.slider('Min Internal Memory (GB)', 
-                                    min_value=int(df_original_filtered['internal_memory'].min()), 
-                                    max_value=int(df_original_filtered['internal_memory'].max()), 
-                                    value=128)
-        
+        internal_memory = st.slider('Min Internal Memory (GB)', min_value=int(df_original_filtered['internal_memory'].min()), max_value=int(df_original_filtered['internal_memory'].max()), value=128)
         screen_size = st.slider('Min Screen Size (inches)', min_value=float(df_original_filtered['screen_size'].min()), max_value=float(df_original_filtered['screen_size'].max()), value=6.5)
         
         # Dropdowns for camera megapixels
