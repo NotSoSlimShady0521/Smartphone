@@ -110,6 +110,10 @@ def main():
 
     # Only recommend smartphones when submit button is pressed
     if submit_button:
+        # Apply price filter
+        df_filtered = df_filtered[df_original_filtered['price'] <= price]
+        df_original_filtered = df_original_filtered[df_original_filtered['price'] <= price]
+        
         # Recommend smartphones
         similar_indices = recommend_smartphones(df_filtered, user_preferences, features, scaler)
         
