@@ -103,7 +103,7 @@ def recommender_system_2(df_original, df_scaled, features, scaler):
 
     # User input: preferences for smartphone features
     with st.sidebar.form(key='preferences_form'):
-        price = st.slider('Max Price (MYR)', min_value=int(df_original['price'].min()), max_value=int(df_original['price'].max()), value=1500)
+        price = st.slider('Max Price (MYR)', min_value=int(df_original['price'].min()), max_value=int(df_original['price'].max()), value=4000)
         battery_capacity = st.slider('Min Battery Capacity (mAh)', min_value=int(df_original['battery_capacity'].min()), max_value=int(df_original['battery_capacity'].max()), value=4000)
         ram_capacity = st.slider('Min RAM (GB)', min_value=int(df_original['ram_capacity'].min()), max_value=int(df_original['ram_capacity'].max()), value=6)
         internal_memory = st.slider('Min Internal Memory (GB)', min_value=int(df_original['internal_memory'].min()), max_value=int(df_original['internal_memory'].max()), value=128)
@@ -132,28 +132,34 @@ def recommender_system_2(df_original, df_scaled, features, scaler):
 
         # Filter based on the max price and other user preferences
         df_filtered = df_filtered[
-            (df_filtered['price'] <= price) &
-            (df_filtered['battery_capacity'] >= battery_capacity) &
-            (df_filtered['ram_capacity'] >= ram_capacity) &
-            (df_filtered['internal_memory'] >= internal_memory) &
-            (df_filtered['screen_size'] >= screen_size) &
-            (df_filtered['primary_camera_rear'] >= rear_camera) &
-            (df_filtered['primary_camera_front'] >= front_camera)
+            (df_filtered['price'] <= price) &  # Filter by price
+            (df_filtered['battery_capacity'] >= battery_capacity) &  # Filter by battery
+            (df_filtered['ram_capacity'] >= ram_capacity) &  # Filter by RAM
+            (df_filtered['internal_memory'] >= internal_memory) &  # Filter by internal memory
+            (df_filtered['screen_size'] >= screen_size) &  # Filter by screen size
+            (df_filtered['primary_camera_rear'] >= rear_camera) &  # Filter by rear camera
+            (df_filtered['primary_camera_front'] >= front_camera)  # Filter by front camera
         ]
 
         # If df_filtered is empty after filtering, display a message
         if df_filtered.empty:
             st.subheader(f'No smartphones found for the selected filters.')
             return
-        
-        # Get the indices of the filtered data for scaled values
+
+        # Now that the filtering is done, normalize the filtered data for similarity computation
         df_filtered_scaled = df_scaled.loc[df_filtered.index]  # Get scaled version of filtered data
 
-        # Recommend smartphones using cosine similarity on the filtered, scaled data
-        similar_indices = recommend_smartphones(df_filtered_scaled, user_preferences, features, scaler)
+        # Prepare the user's preferences for similarity computation
+        user_preferences_scaled = scaler.transform([user_preferences])  # Scale user preferences
 
-        # Extract the recommended smartphones from the original filtered dataframe using the indices
-        recommendations = df_filtered.iloc[similar_indices]
+        # Run the recommendation based on cosine similarity
+        similarity = cosine_similarity(user_preferences_scaled, df_filtered_scaled[features])
+
+        # Get the top N recommendations
+        top_indices = similarity.argsort()[0][-10:][::-1]
+
+        # Extract the recommended smartphones from the original dataframe using the indices
+        recommendations = df_filtered.iloc[top_indices]
 
         # Display recommendations with original values
         st.subheader(f'Recommended Smartphones for Your Preferences:')
