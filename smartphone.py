@@ -11,15 +11,24 @@ def load_data():
 
 # Preprocess the data
 def preprocess_data(df):
-    # Remove 'MYR ' from the price column and convert to numeric
-    df['price'] = df['Price'].str.replace('MYR ', 'RM', regex=False).str.replace(',', '', regex=False).astype(float)
+    # Check if 'Price' column exists in the dataset
+    if 'Price' in df.columns:
+        # Remove 'MYR ' from the price column and convert to numeric
+        df['price'] = df['Price'].str.replace('MYR ', 'RM', regex=False).str.replace(',', '', regex=False)
+        
+        # Convert to float and handle non-numeric values by coercing to NaN
+        df['price'] = pd.to_numeric(df['price'], errors='coerce')
+    else:
+        # If 'Price' column is not found, raise an error
+        st.error("The 'Price' column is missing from the dataset.")
+        return None, None, None, None
 
     # Select numerical columns for similarity computation
     features = ['price', 'battery_capacity', 'ram_capacity', 'internal_memory', 'screen_size', 'primary_camera_rear', 'primary_camera_front']
+    
+    # Ensure the selected features are numeric and fill missing values with the mean
     df[features] = df[features].apply(pd.to_numeric, errors='coerce')  # Convert to numeric
-
-    # Fill missing values with the mean
-    df[features] = df[features].fillna(df[features].mean())
+    df[features] = df[features].fillna(df[features].mean())  # Fill missing values
 
     # Save the original values for display later
     df_original = df.copy()
