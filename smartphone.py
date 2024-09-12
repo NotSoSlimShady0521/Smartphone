@@ -1,64 +1,3 @@
-import streamlit as st
-import pandas as pd
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.preprocessing import MinMaxScaler
-
-# Load the dataset
-@st.cache_data
-def load_data():
-    df = pd.read_csv('smartphone.csv')  # Replace with your file path
-    return df
-
-# Preprocess the data
-def preprocess_data(df):
-    # Check if 'Price' column exists in the dataset
-    if 'Price' in df.columns:
-        # Remove 'MYR ' from the price column and convert to numeric
-        df['price'] = df['Price'].str.replace('MYR ', 'RM', regex=False).str.replace(',', '', regex=False)
-        
-        # Convert to float and handle non-numeric values by coercing to NaN
-        df['price'] = pd.to_numeric(df['price'], errors='coerce')
-    else:
-        # If 'Price' column is not found, raise an error
-        st.error("The 'Price' column is missing from the dataset.")
-        return None, None, None, None
-
-    # Select numerical columns for similarity computation
-    features = ['price', 'battery_capacity', 'ram_capacity', 'internal_memory', 'screen_size', 'primary_camera_rear', 'primary_camera_front']
-    
-    # Ensure the selected features are numeric and fill missing values with the mean
-    df[features] = df[features].apply(pd.to_numeric, errors='coerce')  # Convert to numeric
-    df[features] = df[features].fillna(df[features].mean())  # Fill missing values
-
-    # Save the original values for display later
-    df_original = df.copy()
-
-    # Normalize the feature values to a range of [0,1] for comparison
-    scaler = MinMaxScaler()
-    df[features] = scaler.fit_transform(df[features])
-    
-    return df, df_original, features, scaler
-
-# Recommend smartphones based on similarity
-def recommend_smartphones(df, user_preferences, features, scaler, top_n=10):
-    # Scale the user preferences using the same MinMaxScaler as the dataframe
-    user_preferences_scaled = scaler.transform([user_preferences])  # Scale user preferences to match the range
-    
-    # Convert user preferences into a DataFrame with the same structure as the main dataset
-    user_preferences_df = pd.DataFrame(user_preferences_scaled, columns=features)
-    
-    # Concatenate the user's preferences as a new row in the dataframe
-    df_with_user = pd.concat([df, user_preferences_df], ignore_index=True)
-    
-    # Compute cosine similarity between user preferences and all smartphones
-    similarity = cosine_similarity(df_with_user[features])
-    
-    # Get the top N most similar smartphones (excluding the user preference row)
-    similar_indices = similarity[-1, :-1].argsort()[-top_n:][::-1]
-    
-    # Return the top recommended smartphones
-    return similar_indices
-
 # Streamlit App
 def main():
     st.title('Smartphone Recommender System')
@@ -82,6 +21,9 @@ def main():
         df_filtered = df_scaled
         df_original_filtered = df_original
 
+    # Ensure no NaN values in the price column by filling with mean
+    df_original_filtered['price'] = df_original_filtered['price'].fillna(df_original_filtered['price'].mean())
+    
     # Processor brand options based on the selected smartphone brand
     if selected_brand == 'Any Brand':
         processor_list = df_original['processor_brand'].unique().tolist()  # Show all processor brands if "Any Brand" selected
@@ -97,7 +39,7 @@ def main():
         df_original_filtered = df_original_filtered[df_original_filtered['processor_brand'] == selected_processor_brand]
 
     # User input: preferences for smartphone features
-    price = st.sidebar.slider('Max Price (RM)', min_value=int(df_original_filtered['price'].min()), max_value=int(df_original_filtered['price'].max()), value=1500)
+    price = st.sidebar.slider('Max Price (RM)', min_value=int(df_original_filtered['price'].dropna().min()), max_value=int(df_original_filtered['price'].dropna().max()), value=1500)
     battery_capacity = st.sidebar.slider('Min Battery Capacity (mAh)', min_value=int(df_original_filtered['battery_capacity'].min()), max_value=int(df_original_filtered['battery_capacity'].max()), value=4000)
     ram_capacity = st.sidebar.slider('Min RAM (GB)', min_value=int(df_original_filtered['ram_capacity'].min()), max_value=int(df_original_filtered['ram_capacity'].max()), value=6)
     internal_memory = st.sidebar.slider('Min Internal Memory (GB)', min_value=int(df_original_filtered['internal_memory'].min()), max_value=int(df_original_filtered['internal_memory'].max()), value=128)
