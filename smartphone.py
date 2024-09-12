@@ -86,13 +86,6 @@ def main():
     
     # Removed 'rating' from the result display
     st.dataframe(recommendations[['brand_name', 'model', 'price', 'processor_brand', 'battery_capacity', 'ram_capacity', 'internal_memory', 'screen_size']], height=600, width=1200)
-
-    # User input: preferences for smartphone features
-    price = st.sidebar.slider('Max Price (MYR)', min_value=int(df_original_filtered['price'].min()), max_value=int(df_original_filtered['price'].max()), value=1500)
-    battery_capacity = st.sidebar.slider('Min Battery Capacity (mAh)', min_value=int(df_original_filtered['battery_capacity'].min()), max_value=int(df_original_filtered['battery_capacity'].max()), value=4000)
-    ram_capacity = st.sidebar.slider('Min RAM (GB)', min_value=int(df_original_filtered['ram_capacity'].min()), max_value=int(df_original_filtered['ram_capacity'].max()), value=6)
-    internal_memory = st.sidebar.slider('Min Internal Memory (GB)', min_value=int(df_original_filtered['internal_memory'].min()), max_value=int(df_original_filtered['internal_memory'].max()), value=128)
-    screen_size = st.sidebar.slider('Min Screen Size (inches)', min_value=float(df_original_filtered['screen_size'].min()), max_value=float(df_original_filtered['screen_size'].max()), value=6.5)
     
     # Dropdowns for camera megapixels
     rear_camera = st.sidebar.selectbox('Choose Min Rear Camera MP', sorted(df_original_filtered['primary_camera_rear'].unique()))
@@ -109,7 +102,6 @@ def main():
     
     st.subheader(f'Recommended Smartphones for Brand: {selected_brand} and Processor: {selected_processor_brand}')
     st.write(recommendations[['brand_name', 'model', 'price', 'battery_capacity', 'processor_brand', 'ram_capacity', 'internal_memory', 'screen_size', 'primary_camera_rear', 'primary_camera_front']])
-
 
 if __name__ == "__main__":
     main()
