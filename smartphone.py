@@ -128,18 +128,11 @@ def main():
         recommendations = df_original_filtered.iloc[similar_indices]
 
         st.subheader(f'Recommended Smartphones for Brand: {selected_brand} and Processor: {selected_processor_brand}')
-        st.write(recommendations[['brand_name', 'model', 
-                                  'price', 'battery_capacity', 'processor_brand', 
-                                  'ram_capacity', 'internal_memory', 'screen_size', 
-                                  'primary_camera_rear', 'primary_camera_front']].assign(
-                                  price=lambda x: x['price'].apply(lambda p: f'RM {p:.2f}'),
-                                  battery_capacity=lambda x: x['battery_capacity'].apply(lambda b: f'{int(b)} mAh'),
-                                  ram_capacity=lambda x: x['ram_capacity'].apply(lambda r: f'{int(r)} GB'),
-                                  internal_memory=lambda x: x['internal_memory'].apply(lambda m: f'{int(m)} GB'),
-                                  screen_size=lambda x: x['screen_size'].apply(lambda s: f'{s:.1f} inches'),
-                                  primary_camera_rear=lambda x: x['primary_camera_rear'].apply(lambda r: f'{int(r)} MP'),
-                                  primary_camera_front=lambda x: x['primary_camera_front'].apply(lambda f: f'{int(f)} MP')
-                                  ))
+             st.write(recommendations[['brand_name', 'model', 
+                                  'price', 'battery_capacity', 
+                                  'processor_brand', 'ram_capacity', 
+                                  'internal_memory', 'screen_size', 
+                                  'primary_camera_rear', 'primary_camera_front']])
 
 if __name__ == "__main__":
     main()
