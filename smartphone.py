@@ -146,11 +146,13 @@ def recommender_system_2(df_original, df_scaled, features, scaler):
             st.subheader(f'No smartphones found for the selected filters.')
             return
         
-        # Recommend smartphones
+        # Get the indices of the filtered data for scaled values
         df_filtered_scaled = df_scaled.loc[df_filtered.index]  # Get scaled version of filtered data
+
+        # Recommend smartphones using cosine similarity on the filtered, scaled data
         similar_indices = recommend_smartphones(df_filtered_scaled, user_preferences, features, scaler)
 
-        # Extract the recommended smartphones from the original dataframe using the indices
+        # Extract the recommended smartphones from the original filtered dataframe using the indices
         recommendations = df_filtered.iloc[similar_indices]
 
         # Display recommendations with original values
