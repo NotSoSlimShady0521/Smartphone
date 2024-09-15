@@ -147,5 +147,5 @@ def main():
         recommender_system_2(df_original, df_scaled, features, scaler)
 
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     main()
